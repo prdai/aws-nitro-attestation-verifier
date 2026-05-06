@@ -39,6 +39,29 @@ Work should happen through normal feature branches and pull requests.
 - Keep PRs small and reviewable. The PR should describe the important behavior
   change, verification performed, and any known review or test gaps.
 
+## Conversation History
+
+Agent conversations should be exportable when the tool supports it so the work
+stays transparent and reviewable.
+
+- Keep tool-specific conversation exports in tool-specific directories, such as
+  `.codex/` for Codex sessions and `.claude/` for Claude sessions.
+- Export or update conversation history at practical workflow checkpoints,
+  especially before creating a commit, before opening a PR, after addressing
+  review feedback, and when switching tools or agents.
+- Do not rely on continuous every-message export unless the tool supports it
+  cleanly. Use checkpoint exports so the history stays useful instead of noisy.
+- Use these exports to preserve what the user asked for, what the agent did,
+  what assumptions were made, and what verification was performed.
+- Do not treat chat history as a substitute for clear commits, PR descriptions,
+  tests, or documentation.
+- Do not commit private credentials, secrets, tokens, or sensitive local machine
+  details in exported chat history.
+- If an export contains sensitive data, redact it before committing or ask the
+  user how to handle it.
+- Prefer small, dated, tool-specific transcript files over one large opaque
+  history dump.
+
 ## Commit Discipline
 
 Commits are part of the collaboration loop.
