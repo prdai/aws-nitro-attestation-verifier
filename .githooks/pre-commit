@@ -1,4 +1,4 @@
 #!/bin/sh
 set -eu
 
-make infra-check
+make infra-check go-check
