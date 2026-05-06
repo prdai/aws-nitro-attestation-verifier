@@ -1,4 +1,7 @@
-.PHONY: infra-init infra-fmt infra-validate infra-plan infra-deploy infra-destroy infra-state
+.PHONY: hooks-install infra-init infra-fmt infra-fmt-check infra-validate infra-check infra-plan infra-deploy infra-destroy infra-state
+
+hooks-install:
+	git config core.hooksPath .githooks
 
 infra-init:
 	terraform -chdir=infra init
@@ -6,8 +9,13 @@ infra-init:
 infra-fmt:
 	terraform -chdir=infra fmt
 
+infra-fmt-check:
+	terraform -chdir=infra fmt -check -recursive
+
 infra-validate:
 	terraform -chdir=infra validate
+
+infra-check: infra-fmt-check infra-validate infra-state
 
 infra-plan:
 	terraform -chdir=infra plan
