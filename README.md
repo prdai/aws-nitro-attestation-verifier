@@ -1,4 +1,8 @@
-# AWS Nitro Enclaves Remote Attestation Verification RnD
+# AWS Nitro Attestation Verifier
+
+aws nitro enclaves remote attestation verifier with enclave attestation generation, parent host relay, and client side verification
+
+---
 
 ok so what we need to do is this right- we need to have a external client (can be anything, the data owners, or even our own system), we should be able to call the AWS ECS and then for it to redirect the communication to the relevant nitro enclave (we need to see how we can do this- is it like a id based thing or in what way can be do this communication). 
 
