@@ -20,6 +20,11 @@ driving scope and decisions.
   cleanup.
 - Prefer small, reviewable changes over large rewrites.
 - Communicate what you are doing before making edits.
+- Explain why actions are being taken, not only what changed. The user should
+  be able to understand the reasoning behind commands, edits, architecture
+  choices, validation steps, and tradeoffs.
+- When reporting work, connect each meaningful change to the reason it was
+  needed and the effect it has on the project.
 - When the task is ambiguous, ask or make the smallest reasonable assumption
   and state it clearly.
 
@@ -52,7 +57,8 @@ stays transparent and reviewable.
 - Do not rely on continuous every-message export unless the tool supports it
   cleanly. Use checkpoint exports so the history stays useful instead of noisy.
 - Use these exports to preserve what the user asked for, what the agent did,
-  what assumptions were made, and what verification was performed.
+  why the agent did it, what assumptions were made, and what verification was
+  performed.
 - Do not treat chat history as a substitute for clear commits, PR descriptions,
   tests, or documentation.
 - Do not commit private credentials, secrets, tokens, or sensitive local machine
@@ -97,6 +103,8 @@ The agent must fact check the user's assumptions when needed. That means:
 - Surface missing constraints, especially AWS Nitro Enclaves constraints.
 - Explain risks and tradeoffs clearly.
 - Distinguish verified facts from assumptions.
+- Explain the reasoning behind corrections so the user can judge the technical
+  basis, not just receive a blunt contradiction.
 
 Fact checking is discussion. It does not give the agent permission to ignore
 the user's instructions or perform extra work outside the requested scope.
@@ -108,3 +116,5 @@ the user's instructions or perform extra work outside the requested scope.
 - Prefer repo-native tooling and existing patterns.
 - Verify meaningful behavior with commands or tests when possible.
 - Report exactly what was changed and what was not verified.
+- Include the reason behind important implementation choices, especially when
+  choosing a cheaper, simpler, safer, or more repo-native path.
