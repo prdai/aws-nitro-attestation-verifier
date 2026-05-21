@@ -63,14 +63,14 @@ Run the parent EC2 relay on the same instance:
 make ec2-server-run
 ```
 
-Run the external client from your machine:
+Run the external client from your laptop:
 
 ```sh
 make nitro-root-cert
+export EC2_ATTESTATION_URL=$(make infra-urls | head -n1)
+export AWS_NITRO_ROOT_CERT=$(pwd)/.cache/aws-nitro-root/AWS_NitroEnclaves_Root-G1.pem
 cd client
-go run ./cmd/request \
-  -url http://EC2_PUBLIC_IP:8080/attestation \
-  -root-cert ../.cache/aws-nitro-root/AWS_NitroEnclaves_Root-G1.pem
+go run ./cmd/request
 ```
 
 Stop the enclave and destroy the parent host when finished:

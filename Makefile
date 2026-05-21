@@ -12,8 +12,9 @@ ENCLAVE_CPU_COUNT ?= 1
 NITRO_CLI_BLOBS ?= /usr/share/nitro_enclaves/blobs
 NITRO_CLI_ARTIFACTS ?= /tmp/nitro-cli-artifacts
 HTTP_ADDR ?= :8080
+EC2_DEPLOY_MODE ?= git
 
-.PHONY: hooks-install go-fmt go-fmt-check go-lint go-check nitro-root-cert ec2-server-run enclave-docker-build enclave-eif-build enclave-run enclave-stop enclave-describe infra-init infra-fmt infra-fmt-check infra-validate infra-check infra-plan infra-deploy infra-destroy infra-state
+.PHONY: hooks-install go-fmt go-fmt-check go-lint go-check nitro-root-cert ec2-server-run enclave-docker-build enclave-eif-build enclave-run enclave-stop enclave-describe ec2-app-deploy ec2-app-sync-deploy infra-init infra-fmt infra-fmt-check infra-validate infra-check infra-plan infra-deploy infra-destroy infra-state infra-urls infra-ssh
 
 hooks-install:
 	git config core.hooksPath .githooks
@@ -67,6 +68,12 @@ enclave-stop:
 enclave-describe:
 	nitro-cli describe-enclaves
 
+ec2-app-deploy:
+	EC2_DEPLOY_MODE=$(EC2_DEPLOY_MODE) scripts/ec2-app-deploy.sh
+
+ec2-app-sync-deploy:
+	EC2_DEPLOY_MODE=sync scripts/ec2-app-deploy.sh
+
 infra-init:
 	terraform -chdir=infra init
 
@@ -92,3 +99,9 @@ infra-destroy:
 
 infra-state:
 	terraform -chdir=infra state list
+
+infra-urls:
+	terraform -chdir=infra output -json ec2_attestation_urls | jq -r '.[]'
+
+infra-ssh:
+	terraform -chdir=infra output -json ssh_commands | jq -r '.[]'

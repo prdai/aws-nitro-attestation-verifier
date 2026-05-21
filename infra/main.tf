@@ -73,8 +73,16 @@ resource "aws_route_table_association" "public" {
 
 resource "aws_security_group" "ecs_host" {
   name        = "${local.name}-ecs-host"
-  description = "ECS host egress only; use SSM instead of inbound SSH."
+  description = "ECS host HTTP ingress and outbound access; use SSM instead of inbound SSH."
   vpc_id      = aws_vpc.this.id
+
+  ingress {
+    description = "Public HTTP access to the EC2 host."
+    from_port   = var.http_port
+    to_port     = var.http_port
+    protocol    = "tcp"
+    cidr_blocks = var.allowed_http_cidr_blocks
+  }
 
   egress {
     description = "Outbound internet access for ECS agent, package install, and image pulls."
@@ -233,6 +241,19 @@ resource "aws_autoscaling_group" "ecs" {
     aws_iam_role_policy_attachment.ssm,
     aws_route_table_association.public,
   ]
+}
+
+data "aws_instances" "ecs_hosts" {
+  depends_on = [aws_autoscaling_group.ecs]
+
+  instance_tags = {
+    Name = "${local.name}-ecs-host"
+  }
+
+  filter {
+    name   = "instance-state-name"
+    values = ["running"]
+  }
 }
 
 resource "aws_ecs_capacity_provider" "this" {

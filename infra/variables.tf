@@ -39,6 +39,30 @@ variable "root_volume_size_gib" {
   }
 }
 
+variable "http_port" {
+  description = "Public HTTP port exposed on the EC2 host."
+  type        = number
+  default     = 8080
+}
+
+variable "allowed_http_cidr_blocks" {
+  description = "CIDR blocks allowed to reach the EC2 host over HTTP. Defaults to public internet for experiments."
+  type        = list(string)
+  default     = ["0.0.0.0/0"]
+}
+
+variable "ssh_key_name" {
+  description = "Existing EC2 key pair name to attach to the parent host for SSH. Leave null to disable SSH key login."
+  type        = string
+  default     = null
+}
+
+variable "allowed_ssh_cidr_blocks" {
+  description = "CIDR blocks allowed to reach the EC2 host over SSH. Keep this as your public IP /32, not 0.0.0.0/0."
+  type        = list(string)
+  default     = []
+}
+
 variable "enclave_memory_mib" {
   description = "Memory preallocated for Nitro Enclaves on the parent host. Lowering this does not reduce EC2 cost; it only leaves more memory for the parent."
   type        = number

@@ -27,3 +27,21 @@ output "public_subnet_id" {
   description = "Public subnet ID used by the ECS host."
   value       = aws_subnet.public.id
 }
+
+output "http_port" {
+  description = "Public HTTP port allowed by the EC2 host security group."
+  value       = var.http_port
+}
+
+output "http_url_hint" {
+  description = "HTTP URL shape. Replace <ec2-public-ip> with the current ECS host public IPv4 address."
+  value       = "http://<ec2-public-ip>:${var.http_port}/"
+}
+
+output "ec2_attestation_urls" {
+  description = "Public attestation relay URL for each running ECS host instance. Use one as EC2_ATTESTATION_URL."
+  value = [
+    for public_ip in data.aws_instances.ecs_hosts.public_ips :
+    "http://${public_ip}:${var.http_port}/attestation"
+  ]
+}
