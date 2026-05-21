@@ -1,0 +1,40 @@
+{
+  "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/0.17.2/.schema/devbox.schema.json",
+  "packages": [
+    "go@1.26.2",
+    "terraform@1.15.2",
+    "golangci-lint@2.12.2",
+    "awscli2@2.34.24",
+    "jq@1.8.1",
+    "curl@latest",
+    "unzip@latest",
+    "gnumake@latest"
+  ],
+  "shell": {
+    "init_hook": [
+      "export AWS_NITRO_ROOT_CERT=\"$PWD/.cache/aws-nitro-root/AWS_NitroEnclaves_Root-G1.pem\"",
+      "export NITRO_CLI_BLOBS=\"${NITRO_CLI_BLOBS:-/usr/share/nitro_enclaves/blobs}\"",
+      "export NITRO_CLI_ARTIFACTS=\"${NITRO_CLI_ARTIFACTS:-/tmp/nitro-cli-artifacts}\"",
+      "echo 'devbox ready: run `devbox run check`, `devbox run test`, or `devbox run urls`'"
+    ],
+    "scripts": {
+      "fmt": "make go-fmt infra-fmt",
+      "check": "make go-check infra-check",
+      "test": "for module in client ec2 nitro-enclave; do echo \"go test $$module\"; (cd $$module && go test ./...) || exit 1; done",
+      "root-cert": "make nitro-root-cert",
+      "infra:init": "make infra-init",
+      "infra:plan": "make infra-plan",
+      "infra:deploy": "make infra-deploy",
+      "infra:destroy": "make infra-destroy",
+      "infra:state": "make infra-state",
+      "urls": "terraform -chdir=infra output -json ec2_attestation_urls | jq -r '.[]'",
+      "client": "cd client && go run ./cmd/request",
+      "ec2": "make ec2-server-run",
+      "enclave:docker-build": "make enclave-docker-build",
+      "enclave:eif-build": "make enclave-eif-build",
+      "enclave:run": "make enclave-run",
+      "enclave:stop": "make enclave-stop",
+      "enclave:describe": "make enclave-describe"
+    }
+  }
+}
