@@ -51,8 +51,9 @@ What is already built here:
 - parent EC2 relay over HTTP and vsock
 - client-side attestation verification
 - Terraform for a low-cost Nitro-capable EC2 host
-- SSH-based deployment helpers for building and running the enclave on the EC2
-  host
+- SSH-based deployment helpers that can either clone pushed `main` on the EC2
+  host or rsync the current local working tree there before building and
+  starting the relay plus enclave
 
 What this repository is not trying to be:
 
@@ -70,23 +71,30 @@ Set up the local toolchain:
 ```sh
 devbox shell
 devbox run check
+devbox run test
 ```
 
 Deploy the parent EC2 host with SSH enabled:
 
 ```sh
 MY_IP=$(curl -fsSL https://checkip.amazonaws.com | tr -d '\n')
-terraform -chdir=infra apply \
+devbox run infra:deploy -- \
   -var='use_spot=false' \
   -var='instance_type=c6g.large' \
   -var='ssh_key_name=your-ec2-key-pair-name' \
   -var="allowed_ssh_cidr_blocks=[\"${MY_IP}/32\"]"
 ```
 
-Sync the current working tree to the EC2 host and start the enclave plus relay:
+Deploy the pushed `main` branch onto the parent EC2 host:
 
 ```sh
-EC2_SSH_KEY_PATH=~/.ssh/your-key.pem make ec2-app-sync-deploy
+EC2_SSH_KEY_PATH=~/.ssh/your-key.pem devbox run ec2:app-deploy
+```
+
+For local uncommitted work, sync the current working tree instead:
+
+```sh
+EC2_SSH_KEY_PATH=~/.ssh/your-key.pem devbox run ec2:app-sync-deploy
 ```
 
 Run the client verifier:
@@ -94,7 +102,7 @@ Run the client verifier:
 ```sh
 make nitro-root-cert
 cd client
-EC2_ATTESTATION_URL=$(cd .. && make infra-urls | head -n1) \
+EC2_ATTESTATION_URL=$(cd .. && devbox run urls | head -n1) \
 AWS_NITRO_ROOT_CERT=../.cache/aws-nitro-root/AWS_NitroEnclaves_Root-G1.pem \
 go run ./cmd/request
 ```
@@ -102,7 +110,7 @@ go run ./cmd/request
 Destroy the infrastructure when finished:
 
 ```sh
-make infra-destroy
+devbox run infra:destroy
 ```
 
 ## References

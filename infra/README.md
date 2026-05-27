@@ -45,12 +45,13 @@ running enclave terminate.
 - Optional security group ingress for SSH when `allowed_ssh_cidr_blocks` is
   configured.
 
-The Terraform stack prepares the parent EC2 host. The intended current workflow
-is to SSH into that host, clone this repository there, then use the root
-`Makefile` enclave targets on the EC2 host to build the Docker image, convert it
-to an EIF, start the enclave, and run the parent HTTP relay. Building the EIF on
-the parent host is intentional because `nitro-cli` needs the Nitro-capable EC2
-environment.
+The Terraform stack prepares the parent EC2 host. The current repo workflow is
+to deploy that host first, then use `make ec2-app-deploy` or
+`make ec2-app-sync-deploy` from your local machine. Those helpers SSH into the
+parent host, install the required packages, place the repo on the instance,
+build the enclave Docker image, convert it to an EIF, start the enclave, and
+start the parent HTTP relay. Building the EIF on the parent host is intentional
+because `nitro-cli` needs the Nitro-capable EC2 environment.
 
 The `enclave_memory_mib` value can be reduced only if the enclave image can run
 with less memory. It does not make AWS cheaper because EC2 bills for the whole
@@ -87,7 +88,7 @@ terraform apply \
   -var="allowed_ssh_cidr_blocks=[\"${MY_IP}/32\"]"
 ```
 
-After apply, print the SSH command and clone/build on the host:
+After apply, print the SSH command and deploy the app:
 
 ```sh
 terraform output -json ssh_commands | jq -r '.[]'
@@ -95,10 +96,10 @@ make ec2-app-deploy
 ```
 
 `make ec2-app-deploy` clones the pushed `main` branch on the parent EC2 host,
-builds the enclave image, converts it to an EIF, starts the enclave, and starts
-the HTTP relay. For uncommitted local experiments, use
-`make ec2-app-sync-deploy` to rsync the current working tree before running the
-same remote build/start steps.
+builds the relay binary plus enclave image, converts the enclave image to an
+EIF, starts the enclave, and starts the HTTP relay. For uncommitted local
+experiments, use `make ec2-app-sync-deploy` to rsync the current working tree
+before running the same remote build/start steps.
 
 The manual equivalent is:
 
@@ -111,6 +112,9 @@ make enclave-eif-build
 make enclave-run
 make ec2-server-run
 ```
+
+The automated helpers are the preferred path because they also handle package
+installation and wait for the relay health endpoint before returning.
 
 Destroy the stack when you are done:
 
