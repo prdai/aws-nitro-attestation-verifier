@@ -1,85 +1,116 @@
 # AWS Nitro Attestation Verifier
 
-aws nitro enclaves remote attestation verifier with enclave attestation generation, parent host relay, and client side verification
+Reference implementation of a basic AWS Nitro Enclaves remote attestation
+workflow in Go.
 
----
+This project shows how to:
 
-ok so what we need to do is this right- we need to have a external client (can be anything, the data owners, or even our own system), we should be able to call the AWS ECS and then for it to redirect the communication to the relevant nitro enclave (we need to see how we can do this- is it like a id based thing or in what way can be do this communication). 
+- accept a request from an external client
+- relay that request through a parent EC2 instance
+- ask a real Nitro Enclave for a fresh attestation document through vsock
+- return that document to the client
+- verify the AWS certificate chain, COSE signature, nonce, and PCR values on
+  the client side
 
-after the request is reached to by the nitro encalve then we need to some how make a attestation document within there and then return it to the ECS and back to the client, and afterwards the client can verify and continue on communication between the client and the nitro enclave instance with encryption.
+![Architecture](./assets/architecture-diagram.svg)
 
-![./assets/architecture-diagram.svg](./assets/architecture-diagram.svg)
+## What This Implements
 
-references:
-- https://docs.aws.amazon.com/enclaves/latest/user/nitro-enclave.html
-- https://github.com/aws-samples/sample-nitro-enclaves-attestation
-- https://medium.com/@mdlayher/linux-vm-sockets-in-go-ea11768e9e67
+The repository is split into three runtime pieces:
 
-## Current workflow
+1. `client/cmd/request`
+   Verifies a Nitro attestation document returned by the remote host.
+2. `ec2/cmd/server`
+   Runs on the parent EC2 instance and relays attestation requests to the
+   enclave over vsock.
+3. `nitro-enclave/cmd/attestation`
+   Runs inside the Nitro Enclave, calls the Nitro Security Module (`/dev/nsm`),
+   and returns a fresh attestation document bound to the client nonce.
 
-The workflow is split across three binaries because each side has a different
-trust role.
+The deployed request path is:
 
-1. `client/cmd/request` runs outside AWS. It creates or accepts a nonce, calls
-   the EC2 relay, and verifies the returned COSE_Sign1 attestation document
-   against the AWS Nitro Enclaves root certificate.
-2. `ec2/cmd/server` runs on the parent EC2 host. It exposes public HTTP on
-   `GET /attestation`, forwards the client nonce to the enclave over vsock
-   using `ENCLAVE_CID` and `ENCLAVE_PORT`, and returns the enclave document to
-   the external client. EC2 is only a relay here; it is not trusted by the
-   verifier.
-3. `nitro-enclave/cmd/attestation` runs inside the Nitro Enclave. It listens
-   on a vsock port, decodes the client nonce, asks the Nitro Security Module at
-   `/dev/nsm` for a fresh attestation document, and returns that document to
-   the parent EC2 process.
-
-The verifier checks the certificate chain, the COSE signature over the signed
-payload, and caller-supplied expectations such as nonce and PCR values. The
-nonce matters because it binds the attestation response to the client's fresh
-request instead of accepting a replayed document.
-
-## Deployed enclave workflow
-
-Provision the parent EC2 host first:
-
-```sh
-make infra-init
-make infra-deploy
+```text
+client -> EC2 HTTP relay -> vsock -> Nitro Enclave -> NSM attestation document
 ```
 
-On the parent EC2 host, build the enclave Docker image, convert it to an EIF,
-and start the enclave:
+## Tech Used
+
+- Go for the client, EC2 relay, and enclave application
+- AWS Nitro Enclaves for enclave isolation and attestation
+- VSock for parent-instance to enclave communication
+- NSM for enclave attestation document generation
+- CBOR and COSE_Sign1 for the attestation document format and signature
+- Terraform for the EC2 host and supporting AWS infrastructure
+- Devbox for reproducible local tooling
+
+## Repository Status
+
+What is already built here:
+
+- real Nitro Enclave attestation generation inside the enclave
+- parent EC2 relay over HTTP and vsock
+- client-side attestation verification
+- Terraform for a low-cost Nitro-capable EC2 host
+- SSH-based deployment helpers for building and running the enclave on the EC2
+  host
+
+What this repository is not trying to be:
+
+- a production-ready confidential computing platform
+- a full secret provisioning system after attestation
+- a complete abstraction over Nitro Enclaves internals
+
+It is a focused reference implementation for understanding and testing the
+attestation flow end to end.
+
+## Quick Start
+
+Set up the local toolchain:
 
 ```sh
-make enclave-docker-build
-make enclave-eif-build
-make enclave-run
-make enclave-describe
+devbox shell
+devbox run check
 ```
 
-Run the parent EC2 relay on the same instance:
+Deploy the parent EC2 host with SSH enabled:
 
 ```sh
-make ec2-server-run
+MY_IP=$(curl -fsSL https://checkip.amazonaws.com | tr -d '\n')
+terraform -chdir=infra apply \
+  -var='use_spot=false' \
+  -var='instance_type=c6g.large' \
+  -var='ssh_key_name=your-ec2-key-pair-name' \
+  -var="allowed_ssh_cidr_blocks=[\"${MY_IP}/32\"]"
 ```
 
-Run the external client from your laptop:
+Sync the current working tree to the EC2 host and start the enclave plus relay:
+
+```sh
+EC2_SSH_KEY_PATH=~/.ssh/your-key.pem make ec2-app-sync-deploy
+```
+
+Run the client verifier:
 
 ```sh
 make nitro-root-cert
-export EC2_ATTESTATION_URL=$(make infra-urls | head -n1)
-export AWS_NITRO_ROOT_CERT=$(pwd)/.cache/aws-nitro-root/AWS_NitroEnclaves_Root-G1.pem
 cd client
+EC2_ATTESTATION_URL=$(cd .. && make infra-urls | head -n1) \
+AWS_NITRO_ROOT_CERT=../.cache/aws-nitro-root/AWS_NitroEnclaves_Root-G1.pem \
 go run ./cmd/request
 ```
 
-Stop the enclave and destroy the parent host when finished:
+Destroy the infrastructure when finished:
 
 ```sh
-make enclave-stop
 make infra-destroy
 ```
 
-The Docker image is only the build input. `nitro-cli build-enclave` converts it
-into an EIF, and `nitro-cli run-enclave` runs that EIF as the isolated Nitro
-Enclave. The enclave itself has no public network path.
+## References
+
+- [AWS Nitro Enclaves documentation](https://docs.aws.amazon.com/enclaves/latest/user/nitro-enclave.html)
+- [AWS sample attestation repository](https://github.com/aws-samples/sample-nitro-enclaves-attestation)
+- [Linux VM sockets in Go](https://mdlayher.com/blog/linux-vm-sockets-in-go/)
+- [vsock(7)](https://man7.org/linux/man-pages/man7/vsock.7.html)
+
+A longer write-up is intended to sit alongside this repository for the deeper
+background on Nitro Enclaves, attestation, vsock, CBOR, and COSE.

@@ -22,6 +22,8 @@
       "check": "make go-check infra-check",
       "test": "for module in client ec2 nitro-enclave; do echo \"go test $$module\"; (cd $$module && go test ./...) || exit 1; done",
       "root-cert": "make nitro-root-cert",
+      "ec2:app-deploy": "make ec2-app-deploy",
+      "ec2:app-sync-deploy": "make ec2-app-sync-deploy",
       "infra:init": "make infra-init",
       "infra:plan": "make infra-plan",
       "infra:deploy": "make infra-deploy",
