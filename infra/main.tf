@@ -73,7 +73,7 @@ resource "aws_route_table_association" "public" {
 
 resource "aws_security_group" "ecs_host" {
   name        = "${local.name}-ecs-host"
-  description = "ECS host HTTP ingress and outbound access; use SSM instead of inbound SSH."
+  description = "ECS host HTTP ingress, optional SSH ingress, and outbound access."
   vpc_id      = aws_vpc.this.id
 
   ingress {
@@ -82,6 +82,18 @@ resource "aws_security_group" "ecs_host" {
     to_port     = var.http_port
     protocol    = "tcp"
     cidr_blocks = var.allowed_http_cidr_blocks
+  }
+
+  dynamic "ingress" {
+    for_each = length(var.allowed_ssh_cidr_blocks) > 0 ? [1] : []
+
+    content {
+      description = "SSH access to the EC2 host for manual repo clone and enclave build."
+      from_port   = 22
+      to_port     = 22
+      protocol    = "tcp"
+      cidr_blocks = var.allowed_ssh_cidr_blocks
+    }
   }
 
   egress {
@@ -143,6 +155,7 @@ resource "aws_launch_template" "ecs_host" {
   name_prefix   = "${local.name}-ecs-"
   image_id      = data.aws_ssm_parameter.ecs_optimized_ami.value
   instance_type = var.instance_type
+  key_name      = var.ssh_key_name
 
   iam_instance_profile {
     name = aws_iam_instance_profile.ecs_instance.name

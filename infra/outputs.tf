@@ -38,10 +38,23 @@ output "http_url_hint" {
   value       = "http://<ec2-public-ip>:${var.http_port}/"
 }
 
+output "ec2_public_ips" {
+  description = "Public IPv4 addresses for the running parent EC2 host instances."
+  value       = data.aws_instances.ecs_hosts.public_ips
+}
+
 output "ec2_attestation_urls" {
   description = "Public attestation relay URL for each running ECS host instance. Use one as EC2_ATTESTATION_URL."
   value = [
     for public_ip in data.aws_instances.ecs_hosts.public_ips :
     "http://${public_ip}:${var.http_port}/attestation"
+  ]
+}
+
+output "ssh_commands" {
+  description = "SSH command templates for each running parent EC2 host. Replace the key path with your local private key path."
+  value = [
+    for public_ip in data.aws_instances.ecs_hosts.public_ips :
+    "ssh -i ~/.ssh/${coalesce(var.ssh_key_name, "your-key")}.pem ec2-user@${public_ip}"
   ]
 }

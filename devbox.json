@@ -12,6 +12,7 @@
   ],
   "shell": {
     "init_hook": [
+      "export PATH=\"$PWD/.devbox/nix/profile/default/bin:$PATH\"",
       "export AWS_NITRO_ROOT_CERT=\"$PWD/.cache/aws-nitro-root/AWS_NitroEnclaves_Root-G1.pem\"",
       "export NITRO_CLI_BLOBS=\"${NITRO_CLI_BLOBS:-/usr/share/nitro_enclaves/blobs}\"",
       "export NITRO_CLI_ARTIFACTS=\"${NITRO_CLI_ARTIFACTS:-/tmp/nitro-cli-artifacts}\"",
