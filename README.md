@@ -120,5 +120,3 @@ devbox run infra:destroy
 - [Linux VM sockets in Go](https://mdlayher.com/blog/linux-vm-sockets-in-go/)
 - [vsock(7)](https://man7.org/linux/man-pages/man7/vsock.7.html)
 
-A longer write-up is intended to sit alongside this repository for the deeper
-background on Nitro Enclaves, attestation, vsock, CBOR, and COSE.
